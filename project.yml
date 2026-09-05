@@ -1,0 +1,71 @@
+name: ClaudeUsageMeter
+
+settings:
+  DEVELOPMENT_TEAM: "2Y64BNQ29J"
+  CODE_SIGN_STYLE: Automatic
+  SWIFT_VERSION: 5.9
+
+packages:
+  Shared:
+    path: Sources/Shared
+
+targets:
+  ClaudeUsageMeter:
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Sources/MenuBarApp
+    dependencies:
+      - package: Shared
+        product: ClaudeUsageCore
+      - target: ClaudeUsageWidget
+        embed: true
+    info:
+      path: Resources/Info-App.plist
+      properties:
+        LSUIElement: true
+        LSApplicationCategoryType: "public.app-category.utilities"
+        LSMinimumSystemVersion: "14.0"
+        NSHumanReadableCopyright: "Copyright © 2024. All rights reserved."
+        NSLocalNetworkUsageDescription: "Claude Usage Meter needs to access network to fetch usage information."
+    entitlements:
+      path: Resources/App.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+        com.apple.security.keychain.access-groups:
+          - "$(AppIdentifierPrefix)dev.local.claudeusagemeter"
+        com.apple.security.application-groups:
+          - "group.dev.local.claudeusagemeter"
+    settings:
+      PRODUCT_NAME: ClaudeUsageMeter
+      PRODUCT_BUNDLE_IDENTIFIER: dev.local.claudeusagemeter
+      ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+
+  ClaudeUsageWidget:
+    type: app-extension
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Sources/Widget
+    dependencies:
+      - package: Shared
+        product: ClaudeUsageCore
+    info:
+      path: Resources/Info-Widget.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: "com.apple.widgetkit-extension"
+    entitlements:
+      path: Resources/Widget.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.network.client: true
+        com.apple.security.keychain.access-groups:
+          - "$(AppIdentifierPrefix)dev.local.claudeusagemeter"
+        com.apple.security.application-groups:
+          - "group.dev.local.claudeusagemeter"
+    settings:
+      PRODUCT_NAME: ClaudeUsageWidget
+      PRODUCT_BUNDLE_IDENTIFIER: dev.local.claudeusagemeter.widget
