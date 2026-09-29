@@ -14,11 +14,13 @@ public final class KeychainStore {
     private let account: String
     private let accessGroup: String?
 
-    /// `accessGroup` defaults to nil (the app's own keychain items). A shared group
-    /// would require the `keychain-access-groups` entitlement, which in turn needs a
-    /// provisioning profile — and Personal-Team profiles expire after 7 days, after
-    /// which the app can no longer launch. Only pass a group if the signed
-    /// entitlements actually contain it.
+    /// Items go to the file-based login keychain (no `kSecUseDataProtectionKeychain`),
+    /// where `accessGroup` has no effect; access is controlled by the item's ACL, which
+    /// trusts any build with the same bundle ID signed by the same certificate. So the
+    /// cookie survives rebuilds without a re-login. `accessGroup` defaults to nil
+    /// because a shared group needs the `keychain-access-groups` entitlement, which
+    /// needs a provisioning profile — and Personal-Team profiles expire after 7 days,
+    /// after which the app can no longer launch.
     public init(
         service: String = "dev.local.claudeusagemeter.cookie",
         account: String = "sessionCookie",
