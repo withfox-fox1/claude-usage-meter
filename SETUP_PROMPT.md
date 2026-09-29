@@ -5,9 +5,10 @@
 
 新規導入のMacでも、旧版（ウィジェット付き・Xcodeから起動していた版）が入っているMacでも、同じ手順で最新版になります。
 
+**想定環境**: 開発元のMacと同じ構成（macOS 27 / Xcode 27 / Homebrew導入済み / Xcodeに開発元と同じApple IDでサインイン済み）。これ以外の環境向けの分岐は用意していないので、違いが見つかったら中断してユーザーに相談する。
+
 ## このアプリの前提（作業前に把握しておくこと）
 
-- 対応OS: **macOS 14 Sonoma 以降**（`project.yml` の `deploymentTarget: "14.0"`）
 - メニューバー専用アプリ。ウィジェットは廃止済み
 - **プロビジョニングプロファイルなしで署名する**（`project.yml` で `CODE_SIGN_STYLE: Manual` / `CODE_SIGN_IDENTITY: "Apple Development"`）。
   無料のPersonal Teamのプロファイルは7日で失効し、失効後はアプリが起動できなくなるため。
@@ -17,29 +18,23 @@
 
 ## 手順
 
-### 1. macOSとXcodeの確認
+### 1. 環境の確認
 
 ```bash
-sw_vers -productVersion
-xcode-select -p
-xcodebuild -version
+sw_vers -productVersion        # 27.x
+xcodebuild -version            # Xcode 27.x
+brew --version
+security find-identity -v -p codesigning | grep "Apple Development"   # 1件以上あること
 ```
 
-- macOSが **14.0未満** なら、ここで中断してユーザーに「このMacのmacOSでは動かない（Sonoma以降が必要）」と伝える。
-- Xcodeが入っていない場合は、App Storeからのインストールをユーザーに依頼して中断する。App Storeで入らない古いOSでは、https://developer.apple.com/download/all/ から次のバージョンを入れてもらう:
-  - macOS 14.5以降: Xcode 16.x（macOS 14 で使える最新は 16.2）
-  - macOS 14.0〜14.4: Xcode 15.4（この場合、手順5のテストは実行できないのでスキップする）
-- `xcode-select -p` が `/Library/Developer/CommandLineTools` を指している場合、ユーザーに次を実行してもらう（sudoが必要なのでユーザー自身で）:
-  `! sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`
-- Xcodeを入れた直後でライセンス未同意のエラーが出る場合は、ユーザーに `! sudo xcodebuild -license accept` を実行してもらい、続けて `xcodebuild -runFirstLaunch` を実行する。
+- どれかが想定と違う（macOS/Xcodeのバージョン違い、Homebrewが無い、Apple Development証明書が無い）場合は、ここで中断してユーザーに状況を伝える。
+  証明書が無いのは、XcodeにApple IDでサインインしていないのが原因のことが多い（Xcode → Settings → Accounts）。
 
 ### 2. xcodegen の導入
 
 ```bash
 brew list xcodegen || brew install xcodegen
 ```
-
-Homebrew自体が無い場合は https://brew.sh の手順での導入をユーザーに依頼する。
 
 ### 3. ソースの取得
 
@@ -89,59 +84,22 @@ xcodegen generate
 cd Sources/Shared && swift test; cd ../..
 ```
 
-- `swift test` は Swift Testing（`import Testing`）を使うため **Xcode 16以上が必要**。Xcode 15.4の環境ではスキップしてよい（アプリのビルドには不要）。
 - テストが失敗した場合は中断し、出力をユーザーに見せて相談する。
 
-### 6. 署名方法を決める
+### 6. Release版のビルド
 
-```bash
-security find-identity -v -p codesigning | grep "Apple Development"
-```
-
-**A. `Apple Development` 証明書が見つかった場合（推奨ルート）**
-
-証明書のTeam IDを取り出す（`project.yml` の `2Y64BNQ29J` と違うApple IDでも、これで上書きすれば動く）:
-
-```bash
-TEAM=$(security find-certificate -c "Apple Development" -p | openssl x509 -noout -subject | sed -n 's/.*OU=\([A-Z0-9]*\).*/\1/p')
-echo "$TEAM"
-```
-
-証明書が複数あってTEAMが意図と違う場合は、ユーザーにどのApple IDを使うか確認する。
-
-**B. 証明書が無い場合**
-
-ユーザーに次のどちらかを選んでもらう:
-
-1. **Apple IDでサインインして証明書を作る（おすすめ）**: Xcode → Settings → Accounts でApple ID（無料でよい）を追加 → そのアカウントを選んで「Manage Certificates…」→ 左下の「+」→「Apple Development」。完了したら手順6をやり直す。
-2. **Apple IDを使わない（アドホック署名）**: 手順7で `CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM=` を指定してビルドする。
-   動作に問題はないが、**ビルドし直すたびに初回起動時に「キーチェーンへのアクセスを許可しますか」と聞かれる**（「常に許可」を押せば次のビルドまで出ない）。
-
-### 7. Release版のビルド
-
-A（証明書あり）の場合:
+署名はXcodeにサインイン済みのApple IDの「Apple Development」証明書で、プロファイルなしで行う（`project.yml` の設定どおり。追加の指定は不要）。
 
 ```bash
 xcodebuild -project ClaudeUsageMeter.xcodeproj -scheme ClaudeUsageMeter \
-  -configuration Release -derivedDataPath build \
-  DEVELOPMENT_TEAM="$TEAM" build
-```
-
-B-2（アドホック）の場合:
-
-```bash
-xcodebuild -project ClaudeUsageMeter.xcodeproj -scheme ClaudeUsageMeter \
-  -configuration Release -derivedDataPath build \
-  CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= build
+  -configuration Release -derivedDataPath build build
 ```
 
 - `-allowProvisioningUpdates` は付けない（プロファイルを使わないため不要）。
 - 最後に `** BUILD SUCCEEDED **` が出れば成功。`AppIcon has 2 unassigned children` の警告は既知で無害。
-- 失敗した場合は `error:` の行を読んで切り分ける。署名関連（`No signing certificate` など）なら手順6に戻る。
-  Swiftのコンパイルエラーの場合、このリポジトリは Xcode 27 でビルド確認しているため、古いXcode固有の非互換の可能性がある。
-  エラー内容をユーザーに見せ、修正してよいか確認してから直す（直したら手順5のテストも通すこと）。
+- 失敗した場合は `error:` の行をユーザーに見せて相談する。署名関連（`No signing certificate` など）なら手順1の証明書を確認する。
 
-### 8. ビルド結果の検証
+### 7. ビルド結果の検証
 
 ```bash
 APP=build/Build/Products/Release/ClaudeUsageMeter.app
@@ -152,7 +110,7 @@ codesign --verify --deep --strict "$APP" && echo VERIFY_OK
 
 どれか満たさない場合はインストールせず中断し、ユーザーに報告する。
 
-### 9. /Applications へのインストールと起動
+### 8. /Applications へのインストールと起動
 
 ```bash
 pkill -x ClaudeUsageMeter || true
@@ -163,7 +121,7 @@ sleep 3
 ps -axo pid,ppid,comm | grep '/Applications/ClaudeUsageMeter.app' | grep -v grep   # 親PIDが 1 なら正常（Xcode配下ではない）
 ```
 
-### 10. ログイン項目に登録（Mac起動時に自動で立ち上げる）
+### 9. ログイン項目に登録（Mac起動時に自動で立ち上げる）
 
 ```bash
 osascript -e 'tell application "System Events" to get the name of every login item'
@@ -179,14 +137,13 @@ osascript -e 'tell application "System Events" to get path of login item "Claude
 - 初回は「“ターミナル”（または実行中のアプリ）が“System Events”を制御しようとしています」という確認が出る。ユーザーに「OK」を押してもらう。
 - 拒否されて失敗した場合は、ユーザーに手動で登録してもらう: システム設定 → 一般 → ログイン項目 → 「+」→ `/Applications/ClaudeUsageMeter.app`。
 
-### 11. ユーザーに引き継ぐ（ここはユーザー自身の操作）
+### 10. ユーザーに引き継ぐ（ここはユーザー自身の操作）
 
 以下を伝える:
 
 1. メニューバーにメーターのアイコンが出ていることを確認してください
-2. ログイン画面が表示された場合は claude.ai にログインしてください（旧版で同じMacにログイン済みなら、そのまま使えることが多い）
+2. ログイン画面が表示された場合は claude.ai にログインしてください（旧版で同じMacにログイン済みなら、そのまま使える）
 3. 組織が複数ある場合、表示中の組織が違えばメニューから選び直してください（旧版から更新した場合、組織の選択・通知設定・グラフ履歴はリセットされています）
-4. アドホック署名（B-2）の場合、キーチェーンの確認が出たら「常に許可」を押してください
 
 ## 今後コードを更新したとき
 
@@ -194,7 +151,7 @@ osascript -e 'tell application "System Events" to get path of login item "Claude
 cd ~/claude-usage-meter && git pull --ff-only && xcodegen generate
 ```
 
-のあと、手順7〜9（ビルド → 検証 → /Applications に上書き）を繰り返す。ログイン項目の登録はやり直さなくてよい。
+のあと、手順6〜8（ビルド → 検証 → /Applications に上書き）を繰り返す。ログイン項目の登録はやり直さなくてよい。
 
 ## 完了報告
 
@@ -202,8 +159,8 @@ cd ~/claude-usage-meter && git pull --ff-only && xcodegen generate
 
 - macOS / Xcode のバージョン
 - 旧版の後片付けで何を消したか（無ければ「旧版なし」）
-- テスト結果（スキップした場合はその理由）
-- 署名方法（A: Apple Development / B-2: アドホック）とビルド結果
-- 手順8の検証結果（プロファイル数・権限・VERIFY_OK）
+- テスト結果
+- ビルド結果
+- 手順7の検証結果（プロファイル数・権限・VERIFY_OK）
 - 起動状態（PIDと親PID）とログイン項目への登録結果
 - 発生したエラーとその対処、ユーザーに残っている作業
