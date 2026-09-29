@@ -15,9 +15,7 @@ public final class NotificationManager {
 
     public init(thresholds: [Int] = [80, 95]) {
         self.thresholds = thresholds.sorted()
-        // MenuBarApp/Widget間でApp Groupを共有しているため、通知の既読しきい値もそちらに
-        // 永続化する(App Groupが使えない環境ではUserDefaults.standardへフォールバック)。
-        self.defaults = UserDefaults(suiteName: UsageStore.appGroupID) ?? .standard
+        self.defaults = .standard
         self.notify = NotificationManager.postUserNotification
     }
 

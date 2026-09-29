@@ -4,8 +4,6 @@ import ClaudeUsageCore
 /// 直近の使用率推移を示す簡易スパークライン。
 ///
 /// dataviz方針: 識別(セッション/週間)は色だけに頼らず、線種(実線/破線)と凡例ラベルを併用する。
-/// NOTE: このファイルは Widget ターゲットにも(large サイズ用に)同内容を複製している。
-/// 理由は SeverityStyle.swift と同じく、両ターゲットから参照できる共有UIターゲットが無いため。
 struct SparklineView: View {
     let history: [HistoryPoint]
 

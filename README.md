@@ -1,6 +1,6 @@
 # Claude Usage Meter
 
-Claude.aiのプラン使用率をmacOSのメニューバーに常時表示するアプリです。現在のセッション/週間制限の使用状況を、メニューバーアイコン、通知センター、デスクトップウィジェットで確認できます。
+Claude.aiのプラン使用率をmacOSのメニューバーに常時表示するアプリです。現在のセッション/週間制限の使用状況を、メニューバーアイコンと通知で確認できます。
 
 ## 前提条件
 
@@ -36,39 +36,31 @@ xcodegen generate
 open ClaudeUsageMeter.xcodeproj
 ```
 
-### 3. チーム署名を設定
+### 3. 署名について
 
-Xcode内で以下を設定してください：
+`project.yml` で「Apple Development」証明書による**プロビジョニングプロファイルなし**の署名を設定済みです（`CODE_SIGN_STYLE: Manual`）。
+Xcodeに自分のApple ID（無料のPersonal Teamで可）でサインインしていれば、そのままビルドできます。
+別のApple IDを使う場合は `project.yml` の `DEVELOPMENT_TEAM` を書き換えて `xcodegen generate` し直してください。
 
-1. **ClaudeUsageMeter** ターゲット → 「Signing & Capabilities」タブ
-   - **Team** を自分のApple ID（またはPersonal Team）に設定
+> 無料のPersonal Teamのプロファイルは7日で失効し、失効後はアプリが起動できなくなります。
+> そのためプロファイルが必要な権限（App Groups / keychain-access-groups）は使わず、ウィジェットも廃止しています。
+> プロジェクトにこれらの権限を足すと、また7日ごとの再ビルドが必要になるので注意してください。
 
-2. **ClaudeUsageWidget** ターゲット → 「Signing & Capabilities」タブ
-   - **Team** を同じTeamに設定
-   - App Groups ケイパビリティがエラーになる場合は、「+ Capability」からApp Groupsを改めて追加してください
+### 4. 常用のためにインストール
 
-### 4. アプリを実行
+XcodeのRun（Cmd+R）で起動したアプリはデバッガ配下で動くため、**Xcodeを閉じると一緒に終了します**。
+普段使いにはRelease版を `/Applications` に置いて起動してください。
 
-1. **ClaudeUsageMeter** スキームが選択されていることを確認
-2. Cmd+R を押すか、Product → Run をクリック
-3. 初回実行時は、ログイン画面（WKWebView）が表示されるので claude.ai にログインしてください
+```bash
+xcodebuild -project ClaudeUsageMeter.xcodeproj -scheme ClaudeUsageMeter \
+  -configuration Release -derivedDataPath build build
+pkill -x ClaudeUsageMeter; rm -rf /Applications/ClaudeUsageMeter.app
+ditto build/Build/Products/Release/ClaudeUsageMeter.app /Applications/ClaudeUsageMeter.app
+open /Applications/ClaudeUsageMeter.app
+```
 
-### 5. ウィジェットを追加
-
-ウィジェットをデスクトップまたは通知センターに追加するには：
-
-1. macOSの通知センター/ウィジェット追加画面を開く（通常、ウィジェット+ ボタンをクリック）
-2. 「Claude Usage Widget」を検索・選択
-3. ウィジェットを追加
-
-## ⚠️ Personal Team署名での重要な注意
-
-**無料のPersonal Team署名でビルドした場合、プロビジョニングプロファイルが7日で失効します。**
-
-このため、**週に1回程度、Xcodeから ClaudeUsageMeter を再実行（Cmd+R）してプロビジョニングプロファイルを更新する必要があります。** 更新しないと、ウィジェットが古い表示のまま停止します。
-
-**解決策**：
-- Apple Developer Program（年間99ドル）に登録すると、プロビジョニングプロファイルの有効期限が1年になり、週1更新の手間が不要になります
+初回起動時はログイン画面（WKWebView）が表示されるので claude.ai にログインしてください。
+Mac起動時に自動で立ち上げたい場合は、システム設定 → 一般 → ログイン項目 に `/Applications/ClaudeUsageMeter.app` を追加します。
 
 ## 既知の制限事項
 

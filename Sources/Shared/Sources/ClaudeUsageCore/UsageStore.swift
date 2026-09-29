@@ -1,13 +1,9 @@
 import Foundation
 
 /// Persists the latest `UsageSnapshot` and a bounded history of usage
-/// samples, shared between the menu bar app and the Widget via an App
-/// Group. If the App Group container isn't available (e.g. entitlements not
-/// configured yet, or running in a plain `swift test` environment),
-/// transparently falls back to `UserDefaults.standard` so callers still work.
+/// samples in the app's own `UserDefaults.standard` (no App Group, so the
+/// app can be signed without a provisioning profile).
 public final class UsageStore {
-    public static let appGroupID = "group.dev.local.claudeusagemeter"
-
     private static let snapshotKey = "ClaudeUsageCore.snapshot"
     private static let historyKey = "ClaudeUsageCore.history"
 
@@ -16,7 +12,7 @@ public final class UsageStore {
     private let decoder = JSONDecoder()
 
     public init() {
-        self.defaults = UserDefaults(suiteName: Self.appGroupID) ?? .standard
+        self.defaults = .standard
     }
 
     public func save(snapshot: UsageSnapshot) {

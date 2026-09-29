@@ -5,12 +5,6 @@ import ClaudeUsageCore
 //
 // dataviz スキル方針に準拠: 色だけに頼らず、アイコン(形状)とラベル(文言)を必ず併記する。
 // 色覚多様性のあるユーザーでも "正常/注意/危険" が判別できるようにする。
-//
-// NOTE: この extension は Widget ターゲット側にも同一内容を配置している(重複)。
-// 現状 xcodegen のターゲット構成が MenuBarApp/Widget で分離されており、
-// 両ターゲットから参照できる共通UIモジュールが無いため、意図的に複製している。
-// もし将来 "ClaudeUsageUIKit" のような共有UIターゲットが用意されるなら、
-// このファイルはそちらへ移動して重複を解消するのが望ましい。
 extension UsageSeverity {
     /// 状態を表す基調色。単独では使わず、必ず symbolName / label と併用すること。
     var accentColor: Color {

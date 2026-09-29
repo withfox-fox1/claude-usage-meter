@@ -1,6 +1,6 @@
 # セットアップ指示書（Claude Code向け）
 
-このファイルは、別のMacでこのプロジェクト（Claude Usage Meter: claude.aiの使用率をメニューバー/ウィジェットに表示するmacOSアプリ）をセットアップするための自己完結した指示書です。ユーザーからこのファイルを実行するよう指示されたら、以下を順番に実施してください。
+このファイルは、別のMacでこのプロジェクト（Claude Usage Meter: claude.aiの使用率をメニューバーに表示するmacOSアプリ）をセットアップするための自己完結した指示書です。ユーザーからこのファイルを実行するよう指示されたら、以下を順番に実施してください。
 
 ## 前提
 
@@ -46,7 +46,7 @@ xcodegen generate
 
 - このMacのXcodeに同じApple IDでサインイン済みかユーザーに確認する。
 - 未サインインなら、Xcode → Settings → Accounts でApple IDを追加するようユーザーに依頼する。
-- 別のApple IDを使う場合は、Xcodeの Settings → Accounts でそのアカウントのTeam IDを確認し、`project.yml` の2箇所（トップレベル settings と、必要なら各ターゲット）の `DEVELOPMENT_TEAM` を書き換えてから再度 `xcodegen generate` を実行する。
+- 別のApple IDを使う場合は、Xcodeの Settings → Accounts でそのアカウントのTeam IDを確認し、`project.yml` のトップレベル settings の `DEVELOPMENT_TEAM` を書き換えてから再度 `xcodegen generate` を実行する。
 
 ### 6. ビルド（CLIで検証）
 
@@ -54,8 +54,8 @@ xcodegen generate
 xcodebuild -project ClaudeUsageMeter.xcodeproj \
   -scheme ClaudeUsageMeter \
   -destination 'platform=macOS' \
+  -configuration Release \
   -derivedDataPath build \
-  -allowProvisioningUpdates \
   build
 ```
 
@@ -63,19 +63,22 @@ xcodebuild -project ClaudeUsageMeter.xcodeproj \
 
 ### 7. アプリを起動（ここから先はユーザー操作が必要）
 
+Xcode/デバッガ配下ではなく `/Applications` から起動する（Xcodeから起動するとXcode終了時に一緒に終了するため）。
+
 ```bash
-open build/Build/Products/Debug/ClaudeUsageMeter.app
+ditto build/Build/Products/Release/ClaudeUsageMeter.app /Applications/ClaudeUsageMeter.app
+open /Applications/ClaudeUsageMeter.app
 ```
 
 起動すると初回はログイン画面（WKWebView）が表示される。**ここはユーザー自身の操作が必要**なので、以下をユーザーに伝えて引き継ぐこと：
 
 1. 表示されたログイン画面で claude.ai にログインしてください
 2. ログイン後、メニューバーにアイコンが表示されることを確認してください
-3. デスクトップ/通知センターにウィジェットを追加する場合は、ウィジェットギャラリーから「Claude Usage Widget」を検索して追加してください（GUI操作のためこちらもユーザー自身で行う）
+3. Mac起動時に自動起動したい場合は、システム設定 → 一般 → ログイン項目 に追加してください
 
-### 8. Personal Team署名の注意点をユーザーに伝える
+### 8. 署名の注意点
 
-無料のPersonal Team署名の場合、プロビジョニングプロファイルは7日で失効する。週1回程度、XcodeからCmd+Rで再実行してプロファイルを更新する必要がある（詳細は README.md 参照）。
+プロビジョニングプロファイルなしで署名しているため、無料のPersonal Teamでも7日の失効はない。App Groups / keychain-access-groups 等のプロファイルが必要な権限を追加しないこと（追加すると7日で起動できなくなる）。
 
 ## 完了報告
 

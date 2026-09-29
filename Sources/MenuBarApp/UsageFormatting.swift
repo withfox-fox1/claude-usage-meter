@@ -1,9 +1,6 @@
 import Foundation
 
 // MARK: - 日本語の日時表示ヘルパー
-//
-// NOTE: このファイルの内容は Widget ターゲット側にも複製している(理由は SeverityStyle.swift と同じ:
-// MenuBarApp と Widget を跨いで参照できる共有UIターゲットが現状無いため)。
 
 enum UsageFormatting {
     private static let weekdaySymbols = ["日", "月", "火", "水", "木", "金", "土"]

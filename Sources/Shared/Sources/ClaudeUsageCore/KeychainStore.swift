@@ -14,15 +14,15 @@ public final class KeychainStore {
     private let account: String
     private let accessGroup: String?
 
-    /// `accessGroup` must match a literal entry in both the app's and the widget's
-    /// signed `keychain-access-groups` entitlement (e.g. "$(TeamID).dev.local.claudeusagemeter")
-    /// for the cookie saved by the app to be readable from the widget extension process.
-    /// Free/Personal-Team accounts cannot use App Groups, so this keychain access group
-    /// is the only supported way to share the session cookie across the two processes.
+    /// `accessGroup` defaults to nil (the app's own keychain items). A shared group
+    /// would require the `keychain-access-groups` entitlement, which in turn needs a
+    /// provisioning profile — and Personal-Team profiles expire after 7 days, after
+    /// which the app can no longer launch. Only pass a group if the signed
+    /// entitlements actually contain it.
     public init(
         service: String = "dev.local.claudeusagemeter.cookie",
         account: String = "sessionCookie",
-        accessGroup: String? = "2Y64BNQ29J.dev.local.claudeusagemeter"
+        accessGroup: String? = nil
     ) {
         self.service = service
         self.account = account

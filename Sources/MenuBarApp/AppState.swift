@@ -1,6 +1,5 @@
 import Foundation
 import Combine
-import WidgetKit
 import ClaudeUsageCore
 
 /// メニューバーアプリ全体の状態を保持し、Core層(ClaudeUsageCore)とUIをつなぐオーケストレーター。
@@ -8,7 +7,7 @@ import ClaudeUsageCore
 /// 責務:
 /// - 起動時に Keychain の Cookie を確認し、組織一覧 -> 使用量取得までの初期フローを実行する
 /// - PollingScheduler による5分おきの定期更新
-/// - 通知ON/OFF・選択中組織の永続化(App Group UserDefaults)
+/// - 通知ON/OFF・選択中組織の永続化(UserDefaults.standard)
 /// - ログイン切れ検知時の状態遷移(loggedIn -> loggedOut)
 @MainActor
 final class AppState: ObservableObject {
@@ -47,7 +46,7 @@ final class AppState: ObservableObject {
         self.keychain = keychain
         self.scheduler = scheduler
         self.notificationManager = notificationManager
-        self.defaults = UserDefaults(suiteName: UsageStore.appGroupID) ?? .standard
+        self.defaults = .standard
         self.notificationsEnabled = (self.defaults.object(forKey: Keys.notificationsEnabled) as? Bool) ?? true
         self.selectedOrganizationID = self.defaults.string(forKey: Keys.selectedOrganizationUUID)
         // 直近のキャッシュ値を即座に表示できるよう、ネットワーク疎通前にロードしておく。
@@ -77,7 +76,7 @@ final class AppState: ObservableObject {
     /// 無ければ `.loggedOut` にして呼び出し側でログイン画面を出せるようにする。
     func bootstrap() async {
         guard let cookie = keychain.loadCookie(), !cookie.isEmpty else {
-            // Widgetが古い数字ではなく「要ログイン」を表示できるよう、キャッシュがあれば
+            // 古い数字ではなく「要ログイン」を表示できるよう、キャッシュがあれば
             // needsLogin: true に付け替えて保存し直す。
             if snapshot != nil {
                 markNeedsLoginSnapshot()
@@ -199,7 +198,6 @@ final class AppState: ObservableObject {
             let previous = self.snapshot
             self.snapshot = newSnapshot
             store.save(snapshot: newSnapshot)
-            reloadWidgets()
             store.appendHistory(
                 HistoryPoint(
                     timestamp: newSnapshot.fetchedAt,
@@ -227,7 +225,7 @@ final class AppState: ObservableObject {
 
     /// `refresh(orgUUID:)` の失敗時ハンドラ。
     /// - 認証エラー(notLoggedIn/401/403): ログアウト状態にし、直前のsnapshotがあれば
-    ///   `needsLogin: true` に付け替えて保存し直す(Widgetが「要ログイン」を表示できるように)。
+    ///   `needsLogin: true` に付け替えて保存し直す(「要ログイン」を表示できるように)。
     /// - それ以外(ネットワーク一時障害等): ログイン画面には落とさず、直前のsnapshotがあれば
     ///   `isStale: true` に付け替えて保存し直す(値はそのまま維持しつつ「古い可能性」を表せるように)。
     private func handleFetchError(_ error: Error, fallbackMessage: String) {
@@ -259,7 +257,6 @@ final class AppState: ObservableObject {
         )
         snapshot = updated
         store.save(snapshot: updated)
-        reloadWidgets()
     }
 
     /// 直前のsnapshotがあれば、値は変えずに `isStale: true` へ付け替えて反映・永続化する。
@@ -275,12 +272,5 @@ final class AppState: ObservableObject {
         )
         snapshot = updated
         store.save(snapshot: updated)
-        reloadWidgets()
-    }
-
-    /// デスクトップ/通知センターのWidgetにデータ更新を伝え、即座に再描画させる。
-    /// これを呼ばないと、WidgetKitのタイムライン更新間隔(最大15分)までWidget側の表示が古いままになる。
-    private func reloadWidgets() {
-        WidgetCenter.shared.reloadAllTimelines()
     }
 }
