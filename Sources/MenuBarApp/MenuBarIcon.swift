@@ -11,8 +11,8 @@ import ClaudeUsageCore
 /// MenuBarExtra のラベルはステータスボタンの「画像1枚+タイトル文字列」に変換されるため、
 /// 2枚目以降の Image は表示されない。色付きの要素が複数ある場合は `composite` で1枚に合成して渡す。
 enum MenuBarIcon {
-    /// Claude版の目印: オレンジの光(ChatGPT版は緑の六角形)。
-    static let brandSymbolName = "sparkle"
+    /// Claude版の目印: オレンジの太陽(ChatGPT版は緑の六角形)。
+    static let brandSymbolName = "sun.max.fill"
     static let brandColor = NSColor(srgbRed: 0xD9 / 255, green: 0x77 / 255, blue: 0x57 / 255, alpha: 1)
 
     /// ブランド色で塗ったアイコン。`dimmed` は未ログイン時など、値が当てにならない状態に使う。
