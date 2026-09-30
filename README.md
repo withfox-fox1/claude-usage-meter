@@ -41,8 +41,10 @@ open ClaudeUsageMeter.xcodeproj
 ### 3. 署名について
 
 `project.yml` で「Apple Development」証明書による**プロビジョニングプロファイルなし**の署名を設定済みです（`CODE_SIGN_STYLE: Manual`）。
-Xcodeに自分のApple ID（無料のPersonal Teamで可）でサインインしていれば、そのままビルドできます。
-別のApple IDを使う場合は `project.yml` の `DEVELOPMENT_TEAM` を書き換えて `xcodegen generate` し直してください。
+Xcodeに自分のApple ID（無料のPersonal Teamで可）でサインインしていれば、どのApple IDでもビルドできます。
+`project.yml` の `DEVELOPMENT_TEAM` は開発元のTeam IDなので、コマンドラインでビルドするときは
+`DEVELOPMENT_TEAM="$(bash scripts/detect-team.sh)"` を付けて自分のTeam IDを渡してください（下の手順4に含めています）。
+Xcodeの画面からビルドする場合は、Signing & Capabilities の Team を自分のチームに変えてください。
 
 > 無料のPersonal Teamのプロファイルは7日で失効し、失効後はアプリが起動できなくなります。
 > そのためプロファイルが必要な権限（App Groups / keychain-access-groups）は使わず、ウィジェットも廃止しています。
@@ -55,7 +57,8 @@ XcodeのRun（Cmd+R）で起動したアプリはデバッガ配下で動くた�
 
 ```bash
 xcodebuild -project ClaudeUsageMeter.xcodeproj -scheme ClaudeUsageMeter \
-  -configuration Release -derivedDataPath build build
+  -configuration Release -derivedDataPath build \
+  DEVELOPMENT_TEAM="$(bash scripts/detect-team.sh)" build
 pkill -x ClaudeUsageMeter; rm -rf /Applications/ClaudeUsageMeter.app
 ditto build/Build/Products/Release/ClaudeUsageMeter.app /Applications/ClaudeUsageMeter.app
 open /Applications/ClaudeUsageMeter.app
