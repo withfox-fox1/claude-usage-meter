@@ -36,8 +36,13 @@ struct MenuBarContentView: View {
 
     private var header: some View {
         HStack {
-            Label("Claude使用量メーター", systemImage: "gauge.with.dots.needle.bottom.50percent")
-                .font(.headline)
+            Label {
+                Text("Claude使用量メーター")
+            } icon: {
+                Image(systemName: MenuBarIcon.brandSymbolName)
+                    .foregroundStyle(Color(nsColor: MenuBarIcon.brandColor))
+            }
+            .font(.headline)
             Spacer()
             if appState.isRefreshing {
                 ProgressView()
