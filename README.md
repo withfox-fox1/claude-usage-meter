@@ -26,7 +26,7 @@ brew install xcodegen
 ### 1. Xcodeプロジェクトを生成
 
 ```bash
-cd /Users/agents/claude-usage-meter
+cd /Users/agents/claude/tools/claude-usage-meter
 xcodegen generate
 ```
 

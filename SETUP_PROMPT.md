@@ -16,7 +16,7 @@ macOS/Xcodeのバージョンが違う環境は未検証なので、違いが見
   無料のPersonal Teamのプロファイルは7日で失効し、失効後はアプリが起動できなくなるため。
   **App Groups / keychain-access-groups などプロファイルが必要な権限は絶対に追加しないこと。**
 - 常用は `/Applications/ClaudeUsageMeter.app` から起動する。XcodeのRun（Cmd+R）で起動するとデバッガ配下になり、Xcodeを閉じると一緒に終了してしまう
-- 以下のコマンドは、特に断りがなければリポジトリのルート（`~/claude-usage-meter`）で実行する
+- 以下のコマンドは、特に断りがなければリポジトリのルート（`~/claude/tools/claude-usage-meter`）で実行する
 
 ## 手順
 
@@ -58,9 +58,9 @@ brew list xcodegen || brew install xcodegen
 
 リポジトリは公開（public）なのでログイン不要。
 
-- `~/claude-usage-meter` が**無い**場合:
+- `~/claude/tools/claude-usage-meter` が**無い**場合:
   ```bash
-  git clone https://github.com/withfox-fox1/claude-usage-meter.git ~/claude-usage-meter
+  git clone https://github.com/withfox-fox1/claude-usage-meter.git ~/claude/tools/claude-usage-meter
   ```
 - **既にある**場合（旧版を導入済み）: `git status --short` で未コミットの変更が無いことを確認してから `git pull --ff-only`。
   変更がある場合は勝手に捨てず、ユーザーに確認する。
@@ -83,10 +83,10 @@ pluginkit -m -v -i dev.local.claudeusagemeter.widget 2>/dev/null \
 # 旧版のビルド成果物を削除（どれもビルドのキャッシュで、再ビルドで作り直せる）
 LSREG=/System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister
 for app in ~/Library/Developer/Xcode/DerivedData/ClaudeUsageMeter-*/Build/Products/*/ClaudeUsageMeter.app \
-           ~/claude-usage-meter/build/Build/Products/*/ClaudeUsageMeter.app; do
+           ~/claude/tools/claude-usage-meter/build/Build/Products/*/ClaudeUsageMeter.app; do
   [ -d "$app" ] && "$LSREG" -u "$app"
 done
-rm -rf ~/Library/Developer/Xcode/DerivedData/ClaudeUsageMeter-* ~/claude-usage-meter/build
+rm -rf ~/Library/Developer/Xcode/DerivedData/ClaudeUsageMeter-* ~/claude/tools/claude-usage-meter/build
 EOF
 
 # 確認（何も表示されなければOK）
@@ -170,7 +170,7 @@ osascript -e 'tell application "System Events" to get path of login item "Claude
 ## 今後コードを更新したとき
 
 ```bash
-cd ~/claude-usage-meter && git pull --ff-only && xcodegen generate
+cd ~/claude/tools/claude-usage-meter && git pull --ff-only && xcodegen generate
 ```
 
 のあと、手順6〜8（ビルド → 検証 → /Applications に上書き）を繰り返す。ログイン項目の登録はやり直さなくてよい。
