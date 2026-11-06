@@ -218,6 +218,26 @@ struct ClaudeAPIClientTests {
 
         #expect(box.value == expectedCookie)
     }
+
+    // MARK: - fetchAccountEmail
+
+    @Test func fetchAccountEmailReadsEmailAddress() async {
+        stub(status: 200, jsonString: #"{"uuid": "u-1", "email_address": "a@example.com"}"#)
+        defer { MockURLProtocol.requestHandler = nil }
+
+        let email = await makeClient().fetchAccountEmail()
+
+        #expect(email == "a@example.com")
+    }
+
+    @Test func fetchAccountEmailReturnsNilOnFailure() async {
+        stub(status: 404, jsonString: "{}")
+        defer { MockURLProtocol.requestHandler = nil }
+
+        let email = await makeClient().fetchAccountEmail()
+
+        #expect(email == nil)
+    }
 }
 
 private final class CapturedHeaderBox: @unchecked Sendable {

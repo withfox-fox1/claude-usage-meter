@@ -12,7 +12,8 @@ import ClaudeUsageCore
 /// 切り替えられるようにする。
 @MainActor
 final class CookieRefreshService {
-    private let keychain: KeychainStore
+    private var keychain: KeychainStore
+    private var dataStore: WKWebsiteDataStore
     private let refreshInterval: TimeInterval
     private var timer: DispatchSourceTimer?
     private var hiddenWindow: NSWindow?
@@ -25,9 +26,17 @@ final class CookieRefreshService {
     /// 再取得を試みたがログインが切れていた(401等・ネットワークエラー含む)ときに呼ばれる。
     var onLoginExpired: (() -> Void)?
 
-    init(keychain: KeychainStore, refreshInterval: TimeInterval = 60 * 60 * 24) {
+    init(keychain: KeychainStore, dataStore: WKWebsiteDataStore, refreshInterval: TimeInterval = 60 * 60 * 24) {
         self.keychain = keychain
+        self.dataStore = dataStore
         self.refreshInterval = refreshInterval
+    }
+
+    /// 対象アカウントを切り替える。実行中の再取得は破棄する(結果を新しいアカウントへ書き込まないため)。
+    func setAccount(keychain: KeychainStore, dataStore: WKWebsiteDataStore) {
+        teardownOffscreenWebView()
+        self.keychain = keychain
+        self.dataStore = dataStore
     }
 
     func start() {
@@ -55,18 +64,20 @@ final class CookieRefreshService {
         guard let url = URL(string: "https://claude.ai/new") else { return }
 
         let configuration = WKWebViewConfiguration()
-        configuration.websiteDataStore = .default()
+        configuration.websiteDataStore = dataStore
         let newWebView = WKWebView(frame: .zero, configuration: configuration)
 
+        // 実行中にアカウントが切り替わった場合、結果は破棄する(別アカウントのCookieを上書きしないため)。
+        let targetKeychain = keychain
         let newCoordinator = RefreshCoordinator(
             onSuccess: { [weak self] cookieHeader in
-                guard let self else { return }
-                try? self.keychain.saveCookie(cookieHeader)
+                guard let self, self.keychain === targetKeychain else { return }
+                try? targetKeychain.saveCookie(cookieHeader)
                 self.onCookieRefreshed?()
                 self.teardownOffscreenWebView()
             },
             onFailure: { [weak self] in
-                guard let self else { return }
+                guard let self, self.keychain === targetKeychain else { return }
                 self.onLoginExpired?()
                 self.teardownOffscreenWebView()
             }

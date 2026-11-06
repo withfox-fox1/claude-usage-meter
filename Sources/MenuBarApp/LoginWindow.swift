@@ -14,6 +14,7 @@ import WebKit
 ///   コールバックで呼び出し元に渡す(呼び出し元が Keychain へ保存する)。
 struct LoginWebView: NSViewRepresentable {
     let url: URL
+    let dataStore: WKWebsiteDataStore
     let onLoginDetected: (String) -> Void
 
     func makeCoordinator() -> Coordinator {
@@ -22,7 +23,8 @@ struct LoginWebView: NSViewRepresentable {
 
     func makeNSView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
-        configuration.websiteDataStore = .default()
+        // アカウントごとに別の保存領域を使い、他アカウントのログイン状態と混ざらないようにする。
+        configuration.websiteDataStore = dataStore
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
         webView.load(URLRequest(url: url))
@@ -72,6 +74,7 @@ struct LoginWebView: NSViewRepresentable {
 // MARK: - ログイン画面(説明文 + WebView)
 
 struct LoginContentView: View {
+    let dataStore: WKWebsiteDataStore
     let onLoginDetected: (String) -> Void
 
     private var loginURL: URL {
@@ -97,7 +100,7 @@ struct LoginContentView: View {
 
             Divider()
 
-            LoginWebView(url: loginURL, onLoginDetected: onLoginDetected)
+            LoginWebView(url: loginURL, dataStore: dataStore, onLoginDetected: onLoginDetected)
                 .frame(minWidth: 480, minHeight: 560)
         }
     }
@@ -115,14 +118,22 @@ final class LoginWindowController {
 
     private init() {}
 
-    func present(onLoginDetected: @escaping (String) -> Void) {
-        if let window {
-            window.makeKeyAndOrderFront(nil)
-            NSApp.activate(ignoringOtherApps: true)
-            return
-        }
+    /// ログインウィンドウを開く。
+    /// - Parameters:
+    ///   - dataStore: ログインするアカウント用のWebView保存領域。
+    ///   - onLoginDetected: ログイン成功時に Cookie ヘッダー文字列を渡して呼ばれる。
+    ///   - onCancel: ログインせずにウィンドウが閉じられたときに呼ばれる。
+    func present(
+        dataStore: WKWebsiteDataStore,
+        onLoginDetected: @escaping (String) -> Void,
+        onCancel: @escaping () -> Void = {}
+    ) {
+        // 別アカウント用のウィンドウが開いていたら閉じてから開き直す(コールバックの取り違え防止)。
+        close()
 
-        let contentView = LoginContentView(onLoginDetected: { [weak self] cookieHeader in
+        var succeeded = false
+        let contentView = LoginContentView(dataStore: dataStore, onLoginDetected: { [weak self] cookieHeader in
+            succeeded = true
             onLoginDetected(cookieHeader)
             self?.close()
         })
@@ -135,7 +146,10 @@ final class LoginWindowController {
         newWindow.center()
         newWindow.isReleasedWhenClosed = false
         newWindow.delegate = WindowCloseObserver.shared
-        WindowCloseObserver.shared.onClose = { [weak self] in self?.window = nil }
+        WindowCloseObserver.shared.onClose = { [weak self] in
+            self?.window = nil
+            if !succeeded { onCancel() }
+        }
 
         self.window = newWindow
         newWindow.makeKeyAndOrderFront(nil)

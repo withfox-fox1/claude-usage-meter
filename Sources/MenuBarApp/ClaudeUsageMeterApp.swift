@@ -1,22 +1,36 @@
 import SwiftUI
+import AppKit
 import UserNotifications
 import ClaudeUsageCore
 
 @main
 struct ClaudeUsageMeterApp: App {
-    @StateObject private var appState = AppState()
+    @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
     var body: some Scene {
         MenuBarExtra {
-            MenuBarContentView(appState: appState)
-                .task {
-                    await requestNotificationAuthorizationIfNeeded()
-                    await appState.start()
-                }
+            MenuBarContentView(appState: appDelegate.appState)
         } label: {
-            MenuBarLabel(appState: appState)
+            MenuBarLabel(appState: appDelegate.appState)
         }
         .menuBarExtraStyle(.window)
+    }
+}
+
+/// 起動処理をアプリ起動時に1回だけ実行する。
+///
+/// 以前は MenuBarExtra の中身の `.task` から起動していたため、メニューを閉じるとその Task ごと
+/// 通信がキャンセルされ「組織情報の取得に失敗しました ... Code=-999 cancelled」になっていた
+/// (メニューを開くたびに起動処理も再実行されていた)。
+@MainActor
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    let appState = AppState()
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        Task {
+            await requestNotificationAuthorizationIfNeeded()
+            await appState.start()
+        }
     }
 
     /// NotificationManager (Core側) は通知の "内容判定" のみを担うため、OS権限のリクエストは

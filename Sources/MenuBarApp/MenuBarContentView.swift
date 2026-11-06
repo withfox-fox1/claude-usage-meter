@@ -10,6 +10,8 @@ struct MenuBarContentView: View {
         VStack(alignment: .leading, spacing: 14) {
             header
 
+            AccountSwitcher(appState: appState)
+
             switch appState.loginState {
             case .checking:
                 checkingView
@@ -93,9 +95,7 @@ struct MenuBarContentView: View {
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             Button {
-                LoginWindowController.shared.present { cookieHeader in
-                    appState.handleLoginSucceeded(cookieHeader: cookieHeader)
-                }
+                appState.beginLoginForActiveAccount()
             } label: {
                 Label("ログイン", systemImage: "arrow.right.circle.fill")
                     .frame(maxWidth: .infinity)

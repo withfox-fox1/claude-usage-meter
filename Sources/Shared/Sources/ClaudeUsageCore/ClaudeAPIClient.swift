@@ -37,6 +37,22 @@ public final class ClaudeAPIClient {
         }
     }
 
+    /// Returns the signed-in account's email address (used to label accounts
+    /// in the account switcher), or nil if it cannot be determined. Never
+    /// throws: a label is a nicety, so any failure just yields nil.
+    public func fetchAccountEmail() async -> String? {
+        guard let data = try? await performRequest(path: "account"),
+              let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
+            return nil
+        }
+        for key in ["email_address", "email"] {
+            if let email = json[key] as? String, !email.isEmpty {
+                return email
+            }
+        }
+        return nil
+    }
+
     /// Fetches and parses the usage snapshot for the given organization.
     ///
     /// Robustness note: the claude.ai response shape may evolve, so this
