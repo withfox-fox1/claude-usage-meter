@@ -41,7 +41,11 @@ struct MenuBarContentView: View {
             Label {
                 Text("Claude使用量メーター")
             } icon: {
-                Image(systemName: MenuBarIcon.brandSymbolName)
+                Image(MenuBarIcon.brandLogoName)
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 16, height: 16)
                     .foregroundStyle(Color(nsColor: MenuBarIcon.brandColor))
             }
             .font(.headline)

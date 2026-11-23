@@ -11,14 +11,29 @@ import ClaudeUsageCore
 /// MenuBarExtra のラベルはステータスボタンの「画像1枚+タイトル文字列」に変換されるため、
 /// 2枚目以降の Image は表示されない。色付きの要素が複数ある場合は `composite` で1枚に合成して渡す。
 enum MenuBarIcon {
-    /// Claude版の目印: オレンジの太陽(ChatGPT版は緑の六角形)。
-    static let brandSymbolName = "sun.max.fill"
+    /// Claude版の目印: 公式ロゴ(Assets の ClaudeLogo、出典 simple-icons)をブランド色で塗ったもの。
+    /// ChatGPT版は OpenAI の Blossom をモノクロで表示する。
+    static let brandLogoName = "ClaudeLogo"
+    static let logoSize = NSSize(width: 16, height: 16)
     static let brandColor = NSColor(srgbRed: 0xD9 / 255, green: 0x77 / 255, blue: 0x57 / 255, alpha: 1)
 
     /// ブランド色で塗ったアイコン。`dimmed` は未ログイン時など、値が当てにならない状態に使う。
     static func brandImage(dimmed: Bool = false) -> NSImage {
         let color = dimmed ? brandColor.withAlphaComponent(0.6) : brandColor
-        return coloredSymbol(brandSymbolName, colors: [color])
+        return tintedLogo(color)
+    }
+
+    /// ロゴの形を `color` で塗りつぶした非テンプレート画像。
+    private static func tintedLogo(_ color: NSColor) -> NSImage {
+        let base = NSImage(named: brandLogoName) ?? NSImage()
+        let image = NSImage(size: logoSize, flipped: false) { rect in
+            base.draw(in: rect)
+            color.set()
+            rect.fill(using: .sourceAtop)
+            return true
+        }
+        image.isTemplate = false
+        return image
     }
 
     /// 未ログイン時の表示: 薄くしたアイコン + オレンジの警告マーク。
